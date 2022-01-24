@@ -11,11 +11,18 @@ CONFIG += c++11
 SOURCES += \
     getRecArea.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    screen-rec-apis/src/ScreenRecorder.cpp \
+    screen-rec-apis/src/audio.cpp \
+    screen-rec-apis/src/video.cpp
 
 HEADERS += \
     getRecArea.h \
-    mainwindow.h
+    mainwindow.h \
+    screen-rec-apis/include/ListAVDevices.h \
+    screen-rec-apis/include/ScreenRecorder.h \
+    screen-rec-apis/include/ffmpeglib.h \
+    screen-rec-apis/include/outputColors.h
 
 FORMS += \
     getRecArea.ui \
@@ -23,6 +30,10 @@ FORMS += \
 
 TRANSLATIONS += \
     MyScreenRec_en_150.ts
+
+INCLUDEPATH += /usr/include/x86_64-linux-gnu/libavcodec
+
+LIBS += -lavformat  -lavcodec -lavutil -lavfilter -lswscale -lavutil -lavdevice -lswresample
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

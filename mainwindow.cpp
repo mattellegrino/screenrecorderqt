@@ -8,9 +8,11 @@ MainWindow::MainWindow(QWidget *parent)
     QRect rect = screen->geometry();
     this->height = rect.height();
     this->width = rect.width();
+    this->resolution = std::to_string(width) + "x" + std::to_string(height);
     this->custom = false;
     this->micRec = false;
-    this->filename = "output.mp4";
+    this->filename = "../output.mp4";
+    recorder = new ScreenRecorder();
     ui->setupUi(this);
     ui->checkBox_2->setChecked(true);
 }
@@ -30,6 +32,7 @@ void MainWindow::getArea(QPoint origin, QPoint end) {
     this->end = end;
     std::cout << origin.x() << ", " << origin.y() << std::endl;
     std::cout << end.x() << ", " << end.y() << std::endl;
+    this->cresolution = std::to_string(end.x() - origin.x()) + "x" + std::to_string(end.y() - origin.y());
 }
 
 void MainWindow::on_checkBox_2_stateChanged(int arg1) {
@@ -73,6 +76,14 @@ void MainWindow::on_pushButton_2_clicked() {
         std::cout << "[" << end.x() << ", " << end.y() << "]" << std::endl;
     } else std::cout << "full screen " << "(" << width << "x" << height << ")" << std::endl;
     std::cout << "output file: " << filename << std::endl;
+    if (custom) {
+        recorder->start(filename, micRec, origin.x(), origin.y(), cresolution);
+    } else {
+        recorder->start(filename, micRec, 0, 0, resolution);
+    }
+    ui->pushButton_2->setEnabled(false);
+    ui->pushButton_5->setEnabled(true);
+    ui->pushButton_3->setEnabled(true);
 }
 
 void MainWindow::on_pushButton_6_clicked() {
@@ -88,4 +99,24 @@ bool MainWindow::hasEnding (std::string const &fullString, std::string const &en
     } else {
         return false;
     }
+}
+
+void MainWindow::on_pushButton_5_clicked() {
+    recorder->stop();
+    ui->pushButton_5->setEnabled(false);
+    ui->pushButton_3->setEnabled(false);
+    ui->pushButton_4->setEnabled(false);
+    ui->pushButton_2->setEnabled(true);
+}
+
+void MainWindow::on_pushButton_3_clicked() {
+    recorder->pause();
+    ui->pushButton_3->setEnabled(false);
+    ui->pushButton_4->setEnabled(true);
+}
+
+void MainWindow::on_pushButton_4_clicked() {
+    recorder->resume();
+    ui->pushButton_3->setEnabled(true);
+    ui->pushButton_4->setEnabled(false);
 }

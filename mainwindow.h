@@ -9,6 +9,7 @@
 #include <QObject>
 #include <iostream>
 #include <QFileDialog>
+#include "screen-rec-apis/include/ScreenRecorder.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -28,6 +29,8 @@ public:
     bool custom;
     bool micRec;
     std::string filename;
+    std::string resolution;
+    std::string cresolution;
     QPoint origin;
     QPoint end;
 
@@ -46,12 +49,19 @@ private slots:
 
     void on_pushButton_6_clicked();
 
+    void on_pushButton_5_clicked();
+
+    void on_pushButton_3_clicked();
+
+    void on_pushButton_4_clicked();
+
 public slots:
     void getArea(QPoint origin, QPoint end);
 
 private:
     Ui::MainWindow *ui;
     bool hasEnding (std::string const &fullString, std::string const &ending);
+    ScreenRecorder* recorder;
 
 };
 #endif // MAINWINDOW_H
