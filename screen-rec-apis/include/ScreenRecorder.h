@@ -3,10 +3,12 @@
 
 #include <string>
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <condition_variable>
 #include "ffmpeglib.h"
 #include "outputColors.h"
+#include "recordStatus.h"
 using namespace std;
 const AVSampleFormat requireAudioFmt = AV_SAMPLE_FMT_FLTP;
 class ScreenRecorder {
@@ -16,6 +18,7 @@ private:
     const char*         resolution;
     const char*         oX;
     const char*         oY;
+    recStatus_t         status;
 
     string              deviceName;
     string              failReason;
@@ -46,7 +49,8 @@ private:
     atomic_bool         executing;
     thread*             audioThread{};
     thread*             videoThread{};
-
+    exception_ptr       encodeVErr{};
+    exception_ptr       encodeAErr{};
 
 
     void open();
@@ -60,6 +64,7 @@ private:
     void findAudioStream();
     void setVideoOutCC(AVCodec* codec);
     void setAudioOutCC(AVCodec* codec);
+    int select_sample_rate(const AVCodec *codec);
     void initAudioStream();
     void initVideoStream();
     int64_t incrementTs();
@@ -69,10 +74,12 @@ private:
 public:
     explicit ScreenRecorder();
     ~ScreenRecorder();
-    void start(const string& filename, bool audioRec, int oX, int oY, const string& resolution);
-    void stop();
-    void pause();
-    void resume();
+    int start(const string& filename, bool audioRec, int oX, int oY, const string& resolution);
+    int stop();
+    int pause();
+    int resume();
+    string getError();
+    bool checkEncodeError();
 };
 
 

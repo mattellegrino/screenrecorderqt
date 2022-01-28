@@ -48,9 +48,9 @@ void ScreenRecorder::decodeEncodeAudio() {
     AVFrame *inputFrame = av_frame_alloc();
     AVPacket *inputPacket = av_packet_alloc();
     AVPacket *outputPacket = av_packet_alloc();
-
     uint64_t frameCount = 0;
     int64_t ts = 0;
+    bool validRead = false;
 
     int ret;
 
@@ -62,13 +62,16 @@ void ScreenRecorder::decodeEncodeAudio() {
             break;
         }
 
+        validRead = running;
+
         if (av_read_frame(audioInFormatContext, inputPacket) < 0) {
             audioInLk.unlock();
             break;
         }
+
         audioInLk.unlock();
 
-        if (running && executing) {
+        if (validRead) {
 
             if ((avcodec_send_packet(audioInCodecContext, inputPacket)) < 0)
                 throw std::runtime_error("Can not send pkt in decoding.");
@@ -94,7 +97,6 @@ void ScreenRecorder::decodeEncodeAudio() {
             av_packet_unref(inputPacket);
 
             while (av_audio_fifo_size(audioFifo) >= audioOutCodecContext->frame_size) {
-                if (!running) continue;
                 AVFrame *outputFrame = av_frame_alloc();
                 outputFrame->nb_samples = audioOutCodecContext->frame_size;
                 outputFrame->channels = audioInCodecContext->channels;
@@ -133,9 +135,9 @@ void ScreenRecorder::decodeEncodeAudio() {
                      << endl;
                 av_packet_unref(outputPacket);
             }
-            if (cSamples)
-                av_freep(&cSamples[0]);
-            av_freep(&cSamples);
+            //if (cSamples)
+                //av_freep(&cSamples[0]);
+            //av_freep(&cSamples);
         }
     }
     av_packet_free(&inputPacket);
@@ -159,7 +161,8 @@ void ScreenRecorder::setAudioOutCC(AVCodec *codec) {
     audioOutCodecContext = avcodec_alloc_context3(codec);
     audioOutCodecContext->channels = audioInStream->codecpar->channels;
     audioOutCodecContext->channel_layout = av_get_default_channel_layout(audioInStream->codecpar->channels);
-    audioOutCodecContext->sample_rate = audioInStream->codecpar->sample_rate;
+    //audioOutCodecContext->sample_rate = audioInStream->codecpar->sample_rate;
+    audioOutCodecContext->sample_rate = select_sample_rate(codec);
     audioOutCodecContext->sample_fmt = codec->sample_fmts[0];  //for aac , there is AV_SAMPLE_FMT_FLTP =8
     audioOutCodecContext->bit_rate = 32000;
     audioOutCodecContext->time_base.num = 1;
@@ -186,6 +189,22 @@ void ScreenRecorder::initAudioStream() {
 
     avcodec_parameters_from_context(audioOutStream->codecpar, audioOutCodecContext);
 }
+
+int ScreenRecorder::select_sample_rate(const AVCodec *codec) {
+     const int *p;
+     int best_samplerate = 0;
+
+     if (!codec->supported_samplerates)
+         return 44100;
+
+     p = codec->supported_samplerates;
+     while (*p) {
+         if (!best_samplerate || abs(44100 - *p) < abs(44100 - best_samplerate))
+             best_samplerate = *p;
+         p++;
+     }
+     return best_samplerate;
+ }
 
 AVInputFormat *ScreenRecorder::cp_find_input_format() {
 #ifdef WINDOWS

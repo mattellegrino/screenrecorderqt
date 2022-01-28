@@ -22,7 +22,8 @@ HEADERS += \
     screen-rec-apis/include/ListAVDevices.h \
     screen-rec-apis/include/ScreenRecorder.h \
     screen-rec-apis/include/ffmpeglib.h \
-    screen-rec-apis/include/outputColors.h
+    screen-rec-apis/include/outputColors.h \
+    screen-rec-apis/include/recordStatus.h
 
 FORMS += \
     getRecArea.ui \

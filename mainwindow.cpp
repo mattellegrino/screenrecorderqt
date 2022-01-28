@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     recorder = new ScreenRecorder();
     ui->setupUi(this);
     ui->checkBox_2->setChecked(true);
+    ui->label_4->setVisible(false);
+    ui->label_4->setStyleSheet("QLabel {color: red;}");
 }
 
 MainWindow::~MainWindow() {
@@ -77,9 +79,17 @@ void MainWindow::on_pushButton_2_clicked() {
     } else std::cout << "full screen " << "(" << width << "x" << height << ")" << std::endl;
     std::cout << "output file: " << filename << std::endl;
     if (custom) {
-        recorder->start(filename, micRec, origin.x(), origin.y(), cresolution);
+        if (recorder->start(filename, micRec, origin.x(), origin.y(), cresolution) < 0) {
+            ui->label_4->setText(QString::fromStdString(recorder->getError()));
+            ui->label_4->setVisible(true);
+            return;
+        }
     } else {
-        recorder->start(filename, micRec, 0, 0, resolution);
+        if (recorder->start(filename, micRec, 0, 0, resolution) < 0) {
+            ui->label_4->setText(QString::fromStdString(recorder->getError()));
+            ui->label_4->setVisible(true);
+            return;
+        }
     }
     ui->pushButton_2->setEnabled(false);
     ui->pushButton_5->setEnabled(true);
@@ -102,7 +112,11 @@ bool MainWindow::hasEnding (std::string const &fullString, std::string const &en
 }
 
 void MainWindow::on_pushButton_5_clicked() {
-    recorder->stop();
+    if (recorder->stop() < 0) {
+        ui->label_4->setText(QString::fromStdString(recorder->getError()));
+        ui->label_4->setVisible(true);
+        return;
+    }
     ui->pushButton_5->setEnabled(false);
     ui->pushButton_3->setEnabled(false);
     ui->pushButton_4->setEnabled(false);
@@ -110,13 +124,21 @@ void MainWindow::on_pushButton_5_clicked() {
 }
 
 void MainWindow::on_pushButton_3_clicked() {
-    recorder->pause();
+    if (recorder->pause() < 0) {
+        ui->label_4->setText(QString::fromStdString(recorder->getError()));
+        ui->label_4->setVisible(true);
+        return;
+    }
     ui->pushButton_3->setEnabled(false);
     ui->pushButton_4->setEnabled(true);
 }
 
 void MainWindow::on_pushButton_4_clicked() {
-    recorder->resume();
+    if (recorder->resume() < 0) {
+        ui->label_4->setText(QString::fromStdString(recorder->getError()));
+        ui->label_4->setVisible(true);
+        return;
+    }
     ui->pushButton_3->setEnabled(true);
     ui->pushButton_4->setEnabled(false);
 }

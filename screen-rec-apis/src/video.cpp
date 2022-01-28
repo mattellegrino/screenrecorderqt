@@ -48,6 +48,7 @@ void ScreenRecorder::decodeEncodeVideo() {
     AVPacket* outputPacket = av_packet_alloc();
     int64_t ts = 0;
     int frameCount = 0;
+    bool validRead = false;
 
     outputFrame->format = videoOutCodecContext->pix_fmt;
     outputFrame->width = videoOutCodecContext->width;
@@ -95,13 +96,14 @@ void ScreenRecorder::decodeEncodeVideo() {
             break;
         }
 
+        validRead = running;
         if (av_read_frame(videoInFormatContext, inputPacket) < 0) {
             videoInLk.unlock();
             break;
         }
         videoInLk.unlock();
 
-        if (running && executing) {
+        if (validRead) {
 
             if ((avcodec_send_packet(videoInCodecContext, inputPacket)) < 0)
                 throw std::runtime_error("Can not send pkt in decoding.");

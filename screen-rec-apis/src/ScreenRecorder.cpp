@@ -6,32 +6,43 @@ using namespace std;
 
 ScreenRecorder::ScreenRecorder() {
     avdevice_register_all();
+    status = IDLE;
 }
 
 ScreenRecorder::~ScreenRecorder() {
     avformat_free_context(videoInFormatContext);
-    avformat_free_context(audioInFormatContext);
+    if (audioRec)
+        avformat_free_context(audioInFormatContext);
     avformat_free_context(outFormatContext);
     avcodec_free_context(&videoInCodecContext);
-    avcodec_free_context(&audioInCodecContext);
-    avcodec_free_context(&audioOutCodecContext);
+    if (audioRec)
+        avcodec_free_context(&audioInCodecContext);
+    if (audioRec)
+        avcodec_free_context(&audioOutCodecContext);
     avcodec_free_context(&videoOutCodecContext);
-    av_audio_fifo_free(audioFifo);
-    swr_free(&audioConverter);
+    if (audioRec)
+        av_audio_fifo_free(audioFifo);
+    if (audioRec)
+        swr_free(&audioConverter);
     sws_freeContext(videoConverter);
 }
 
-void ScreenRecorder::stop() {
+int ScreenRecorder::stop() {
+    if (status != RECORDING && status != PAUSED) {
+        this->failReason = "Can't stop with no capture going on.";
+        return -1;
+    }
     cout << "entered stop" << endl;
     this->executing = false;
     audioInLk.lock();
     videoInLk.lock();
-    avformat_close_input(&videoInFormatContext);
     avformat_close_input(&audioInFormatContext);
+    avformat_close_input(&videoInFormatContext);
     audioInLk.unlock();
     videoInLk.unlock();
     videoThread->join();
-    audioThread->join();
+    if (audioRec)
+        audioThread->join();
     outFmtCtxLock.lock();
     int ret = av_write_trailer(outFormatContext);
     outFmtCtxLock.unlock();
@@ -41,17 +52,33 @@ void ScreenRecorder::stop() {
     fflush(stdout);
 }
 
-void ScreenRecorder::pause() {
+int ScreenRecorder::pause() {
+    if (status != RECORDING){
+        this->failReason = "Can't pause with no capture going on.";
+        return -1;
+    }
     this->running = false;
     cout << BOLDMAGENTA << "PAUSED" << RESET << endl;
+    status = PAUSED;
+    return 0;
 }
 
-void ScreenRecorder::resume() {
+int ScreenRecorder::resume() {
+    if (status != PAUSED){
+        this->failReason = "Can't resume if not paused.";
+        return -1;
+    }
     this->running = true;
     cout << BOLDMAGENTA << "RESUMED" << RESET << endl;
+    status = RECORDING;
+    return 0;
 }
 
-void ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY, const string& resolution) {
+int ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY, const string& resolution) {
+    if (status != IDLE){
+        this->failReason = "There's already an ongoing capture.";
+        return -1;
+    }
     this->outFile = filename;
     this->resolution = resolution.c_str();
     this->oX = std::to_string(oX).c_str();
@@ -62,10 +89,15 @@ void ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY
     }
     catch (std::exception& e) {
         this->failReason = e.what();
+        return -2;
+    }
+    try {
+        initFile();
+    } catch (std::exception& e) {
+        this->failReason = e.what();
+        return -3;
     }
 
-
-    initFile();
     running = true;
     executing = true;
 
@@ -74,22 +106,46 @@ void ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY
             this->decodeEncodeVideo();
         }
         catch (std::exception& e) {
+            encodeVErr = current_exception();
             this->failReason = e.what();
         }
     });
-    audioThread = new std::thread([this]() {
-        try {
-            this->decodeEncodeAudio();
-        }
-        catch (std::exception& e) {
-            this->failReason = e.what();
-        }
-    });
+    if (audioRec) {
+        audioThread = new std::thread([this]() {
+            try {
+                this->decodeEncodeAudio();
+            }
+            catch (std::exception& e) {
+                encodeAErr = current_exception();
+                this->failReason = e.what();
+            }
+        });
+    }
+    status = RECORDING;
+}
+
+string ScreenRecorder::getError() {
+    return failReason;
+}
+
+bool ScreenRecorder::checkEncodeError() {
+    return (encodeAErr || encodeVErr);
 }
 
 void ScreenRecorder::open() {
-    openVideo();
-    openAudio();
+    try {
+        openVideo();
+    } catch (std::exception& e) {
+        throw;
+    }
+
+    if (audioRec){
+        try {
+            openAudio();
+        } catch (std::exception& e) {
+            throw;
+        }
+    }
 }
 
 void ScreenRecorder::initFile() {
@@ -101,7 +157,8 @@ void ScreenRecorder::initFile() {
 
     initVideoStream();
 
-    initAudioStream();
+    if (audioRec)
+        initAudioStream();
 
     if ((avformat_write_header(outFormatContext , &videoOptions)) < 0)
         throw std::runtime_error("Error writing header context.");
