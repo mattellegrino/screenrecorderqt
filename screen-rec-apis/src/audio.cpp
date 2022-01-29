@@ -220,7 +220,7 @@ AVInputFormat *ScreenRecorder::cp_find_input_format() {
     //"[[VIDEO]:[AUDIO]]"
 #elif UNIX
     if(deviceName.empty()) deviceName = "default";
-    return av_find_input_format("pulse");
+    return av_find_input_format("alsa");
 #elif __linux__
     if(deviceName.empty()) deviceName = "default";
     return av_find_input_format("alsa");
