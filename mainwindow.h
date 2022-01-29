@@ -22,18 +22,6 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    QScreen* screen{};
-
-    int height;
-    int width;
-    bool custom;
-    bool micRec;
-    std::string filename;
-    std::string resolution;
-    std::string cresolution;
-    QPoint origin;
-    QPoint end;
-
 
 
 private slots:
@@ -62,6 +50,18 @@ private:
     Ui::MainWindow *ui;
     bool hasEnding (std::string const &fullString, std::string const &ending);
     ScreenRecorder* recorder;
+
+    QScreen* screen{};
+
+    int height;
+    int width;
+    bool custom;
+    bool micRec;
+    std::string filename;
+    std::string resolution;
+    std::string cresolution;
+    QPoint origin;
+    QPoint end;
 
 };
 #endif // MAINWINDOW_H

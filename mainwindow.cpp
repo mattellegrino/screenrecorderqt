@@ -94,6 +94,7 @@ void MainWindow::on_pushButton_2_clicked() {
     ui->pushButton_2->setEnabled(false);
     ui->pushButton_5->setEnabled(true);
     ui->pushButton_3->setEnabled(true);
+    ui->label_4->setVisible(false);
 }
 
 void MainWindow::on_pushButton_6_clicked() {
@@ -121,6 +122,12 @@ void MainWindow::on_pushButton_5_clicked() {
     ui->pushButton_3->setEnabled(false);
     ui->pushButton_4->setEnabled(false);
     ui->pushButton_2->setEnabled(true);
+
+    if (recorder->checkEncodeError()) {
+        ui->label_4->setText("An error occured during encoding. Output file may be corrupted.");
+        ui->label_4->setVisible(true);
+        return;
+    }
 }
 
 void MainWindow::on_pushButton_3_clicked() {

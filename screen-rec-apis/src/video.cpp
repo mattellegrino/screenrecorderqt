@@ -168,13 +168,13 @@ void ScreenRecorder::setVideoOutCC(AVCodec *codec) {
     videoOutCodecContext->codec_id = AV_CODEC_ID_MPEG4;// AV_CODEC_ID_MPEG4; // AV_CODEC_ID_H264 // AV_CODEC_ID_MPEG1VIDEO
     videoOutCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
     videoOutCodecContext->pix_fmt  = AV_PIX_FMT_YUV420P;
-    videoOutCodecContext->bit_rate = 10000000; // 400k
+    videoOutCodecContext->bit_rate = 10000000;
     videoOutCodecContext->width = 1920;
     videoOutCodecContext->height = 1080;
-    videoOutCodecContext->gop_size = 50; // 1
-    videoOutCodecContext->max_b_frames = 0; // 2
+    videoOutCodecContext->gop_size = 50;
+    videoOutCodecContext->max_b_frames = 0;
     videoOutCodecContext->time_base.num = 1;
-    videoOutCodecContext->time_base.den = 30; // 15fps
+    videoOutCodecContext->time_base.den = 30;
     if (videoCodecId == AV_CODEC_ID_H264)
         av_opt_set(videoOutCodecContext->priv_data, "preset", "slow", 0);
     outFmtCtxLock.lock();

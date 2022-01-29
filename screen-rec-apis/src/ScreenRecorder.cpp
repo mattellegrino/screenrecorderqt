@@ -50,6 +50,8 @@ int ScreenRecorder::stop() {
     avio_close(outFormatContext->pb);
     std::clog << "Finished recording." << std::endl;
     fflush(stdout);
+    status = IDLE;
+    return 0;
 }
 
 int ScreenRecorder::pause() {
@@ -122,6 +124,7 @@ int ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY,
         });
     }
     status = RECORDING;
+    return 0;
 }
 
 string ScreenRecorder::getError() {

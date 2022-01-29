@@ -61,9 +61,7 @@ void ScreenRecorder::decodeEncodeAudio() {
             audioInLk.unlock();
             break;
         }
-
         validRead = running;
-
         if (av_read_frame(audioInFormatContext, inputPacket) < 0) {
             audioInLk.unlock();
             break;
@@ -164,7 +162,7 @@ void ScreenRecorder::setAudioOutCC(AVCodec *codec) {
     //audioOutCodecContext->sample_rate = audioInStream->codecpar->sample_rate;
     audioOutCodecContext->sample_rate = select_sample_rate(codec);
     audioOutCodecContext->sample_fmt = codec->sample_fmts[0];  //for aac , there is AV_SAMPLE_FMT_FLTP =8
-    audioOutCodecContext->bit_rate = 32000;
+    audioOutCodecContext->bit_rate = 48000; //32000
     audioOutCodecContext->time_base.num = 1;
     audioOutCodecContext->time_base.den = audioOutCodecContext->sample_rate;
 
@@ -225,6 +223,6 @@ AVInputFormat *ScreenRecorder::cp_find_input_format() {
     return av_find_input_format("pulse");
 #elif __linux__
     if(deviceName.empty()) deviceName = "default";
-    return av_find_input_format("pulse");
+    return av_find_input_format("alsa");
 #endif
 }
