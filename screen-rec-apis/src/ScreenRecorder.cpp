@@ -11,20 +11,17 @@ ScreenRecorder::ScreenRecorder() {
 
 ScreenRecorder::~ScreenRecorder() {
     avformat_free_context(videoInFormatContext);
-    if (audioRec)
-        avformat_free_context(audioInFormatContext);
     avformat_free_context(outFormatContext);
     avcodec_free_context(&videoInCodecContext);
-    if (audioRec)
-        avcodec_free_context(&audioInCodecContext);
-    if (audioRec)
-        avcodec_free_context(&audioOutCodecContext);
     avcodec_free_context(&videoOutCodecContext);
-    if (audioRec)
-        av_audio_fifo_free(audioFifo);
-    if (audioRec)
-        swr_free(&audioConverter);
     sws_freeContext(videoConverter);
+    if (audioRec) {
+        avformat_free_context(audioInFormatContext);
+        avcodec_free_context(&audioInCodecContext);
+        avcodec_free_context(&audioOutCodecContext);
+        av_audio_fifo_free(audioFifo);
+        swr_free(&audioConverter);
+    }
 }
 
 int ScreenRecorder::stop() {
