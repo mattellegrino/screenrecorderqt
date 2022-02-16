@@ -1,29 +1,92 @@
 #include "../include/ScreenRecorder.h"
 #include <iostream>
 #include <cassert>
+#include "qglobal.h"
+#include "windows.h"
+
+std::wstring s2ws(const std::string& str)
+{
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+    std::wstring wstrTo( size_needed, 0 );
+    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+    return wstrTo;
+}
+
 
 void ScreenRecorder::openVideo() {
     videoOptions = nullptr;
     videoInFormatContext = nullptr;
-
     videoInFormatContext = avformat_alloc_context();
-
-    videoInputFormat = av_find_input_format("x11grab");
-    av_dict_set(&videoOptions, "video_size", this->resolution, 0);
-    av_dict_set(&videoOptions, "grab_x", this->oX, 0);
-    av_dict_set(&videoOptions, "grab_y", this->oY, 0);
-    if ((avformat_open_input(&videoInFormatContext, ":1.0", videoInputFormat, &videoOptions)) != 0)
-        throw std::runtime_error("Error while opening input device.");
 
     if ((av_dict_set(&videoOptions, "framerate", "30", 0 )) < 0)
         throw std::runtime_error("Error in setting framerate value.");
-
 
     if ((av_dict_set(&videoOptions, "preset", "medium", 0 )) < 0)
         throw std::runtime_error("Error in setting preset value.");
 
     if ((av_dict_set(&videoOptions, "vsync", "vfr", 0 )) < 0)
         throw std::runtime_error("Error in setting preset value.");
+
+    if ((av_dict_set(&videoOptions, "filter", "crop=80:60:200:100", 0 )) < 0)
+        throw std::runtime_error("Error in setting crop value.");
+
+
+    #ifdef Q_OS_LINUX
+    videoInputFormat = av_find_input_format("x11grab");
+    if ((avformat_open_input(&videoInFormatContext, ":1.0", videoInputFormat, &videoOptions)) != 0)
+        throw std::runtime_error("Error while opening input device.");
+    #endif
+
+    #ifdef Q_OS_WIN32
+    videoInputFormat = av_find_input_format("dshow");
+    if ((avformat_open_input(&videoInFormatContext, "video=screen-capture-recorder", videoInputFormat, &videoOptions)) != 0)
+        throw std::runtime_error("Error while opening input device.");
+    #endif
+
+
+    /*static DWORD newvalue = 300;
+    std::string startx= {"300"};
+    std::string valuename = {"start_x"};
+    const std::wstring& valueName=s2ws(valuename);
+    const std::wstring& data=s2ws(startx);
+    HKEY hk;
+    DWORD dw;
+    DWORD dwType = REG_DWORD;
+    char buf[255] = {0};
+    DWORD dwBufSize = sizeof(newvalue);
+    long n = RegOpenKeyEx(HKEY_CURRENT_USER,TEXT("Software\\screen-capture-recorder"),0,KEY_READ,&hk);
+    if(n==ERROR_SUCCESS)
+    {
+
+    cout << "riuscito" << n << endl;
+    }
+    n = RegQueryValueEx (hk,TEXT("start_y"),NULL,NULL,(LPBYTE)&newvalue, &dwBufSize);
+    if(n==ERROR_SUCCESS)
+    {
+
+    cout << "riuscito2" << n << endl;
+    }
+    n= RegSetValueEx(hk,NULL,0,REG_DWORD,(BYTE*)&newvalue,dwBufSize);
+    if(n==ERROR_SUCCESS)
+    {
+
+    cout << "riuscito3" << endl;
+    }else
+    {
+
+    cout << n << endl;
+    }
+
+    RegCloseKey(hk);*/
+
+
+av_dict_set(&videoOptions, "video_size", this->resolution, 0);
+av_dict_set(&videoOptions, "grab_x", this->oX, 0);
+av_dict_set(&videoOptions, "grab_y", this->oY, 0);
+av_dict_set(&videoOptions, "start_x", "20", 0);
+av_dict_set(&videoOptions, "start_y", "30", 0);
+
+
 
     findVideoStream();
 
@@ -127,7 +190,6 @@ void ScreenRecorder::decodeEncodeVideo() {
             outputPacket->pts = ts;
             outputPacket->dts = ts;
 
-
             outFmtCtxLock.lock();
             if (av_write_frame(outFormatContext, outputPacket) != 0)
                 throw std::runtime_error("Error writing frame");
@@ -171,7 +233,7 @@ void ScreenRecorder::setVideoOutCC(AVCodec *codec) {
     videoOutCodecContext->bit_rate = 10000000;
     videoOutCodecContext->width = 1920;
     videoOutCodecContext->height = 1080;
-    videoOutCodecContext->gop_size = 50;
+    videoOutCodecContext->gop_size = 0;
     videoOutCodecContext->max_b_frames = 0;
     videoOutCodecContext->time_base.num = 1;
     videoOutCodecContext->time_base.den = 30;

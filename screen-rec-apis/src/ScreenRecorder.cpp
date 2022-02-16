@@ -1,4 +1,5 @@
 #include "../include/ScreenRecorder.h"
+#include "screen-rec-apis/include/ffmpeglib.h"
 #include <iostream>
 #include <cassert>
 
@@ -73,7 +74,7 @@ int ScreenRecorder::resume() {
     return 0;
 }
 
-int ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY, const string& resolution) {
+int ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY, int endX, int endY, const string& resolution) {
     if (status != IDLE){
         this->failReason = "There's already an ongoing capture.";
         return -1;
@@ -82,6 +83,8 @@ int ScreenRecorder::start(const string& filename, bool audioRec, int oX, int oY,
     this->resolution = resolution.c_str();
     this->oX = std::to_string(oX).c_str();
     this->oY = std::to_string(oY).c_str();
+    this->endX = std::to_string(endX).c_str();
+    this->endY = std::to_string(endY).c_str();
     this->audioRec = audioRec;
     try {
         this->open();
@@ -149,10 +152,15 @@ void ScreenRecorder::open() {
 }
 
 void ScreenRecorder::initFile() {
+    int a;
+    outFormatContext = NULL;
+
+
     if((avformat_alloc_output_context2(&outFormatContext, nullptr, nullptr, outFile.c_str())) < 0)
         throw std::runtime_error("Failed to alloc ouput context");
 
-    if((avio_open(&outFormatContext->pb, outFile.c_str(), AVIO_FLAG_WRITE)) < 0)
+    a=avio_open2(&outFormatContext->pb, outFile.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
+    if(a < 0)
         throw std::runtime_error("Fail to open output file.");
 
     initVideoStream();

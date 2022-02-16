@@ -1,6 +1,7 @@
 #include "../include/ScreenRecorder.h"
 #include <iostream>
 #include <cassert>
+#include "qglobal.h"
 
 void ScreenRecorder::openAudio() {
     AVDictionary* options = nullptr;
@@ -9,6 +10,7 @@ void ScreenRecorder::openAudio() {
 
     if (avformat_open_input(&audioInFormatContext, deviceName.c_str(), audioInputFormat, &options) != 0)
         throw std::runtime_error("Couldn't open input audio stream.");
+
 
     if (avformat_find_stream_info(audioInFormatContext, nullptr) < 0)
         throw std::runtime_error("Couldn't find audio stream information.");
@@ -42,6 +44,8 @@ void ScreenRecorder::openAudio() {
     swr_init(audioConverter);
 
     audioFifo = av_audio_fifo_alloc(requireAudioFmt, audioInCodecContext->channels, audioInCodecContext->sample_rate * 2);
+
+
 }
 
 void ScreenRecorder::decodeEncodeAudio() {
@@ -94,7 +98,7 @@ void ScreenRecorder::decodeEncodeAudio() {
             av_frame_unref(inputFrame);
             av_packet_unref(inputPacket);
 
-            while (av_audio_fifo_size(audioFifo) >= audioOutCodecContext->frame_size) {
+           while (av_audio_fifo_size(audioFifo) >= audioOutCodecContext->frame_size) {
                 AVFrame *outputFrame = av_frame_alloc();
                 outputFrame->nb_samples = audioOutCodecContext->frame_size;
                 outputFrame->channels = audioInCodecContext->channels;
@@ -121,30 +125,37 @@ void ScreenRecorder::decodeEncodeAudio() {
 
                 outputPacket->stream_index = audioOutStream->index;
                 outputPacket->duration = audioOutStream->time_base.den * 1024 / audioOutCodecContext->sample_rate;
-                ts = static_cast<long>(frameCount) * audioOutStream->time_base.den * 1024 /
-                     audioOutCodecContext->sample_rate;
+
+                ts = static_cast<long>(frameCount);
+                ts= ts* audioOutStream->time_base.den;
+                ts= ts * 1024;
+                ts= ts / audioOutCodecContext->sample_rate;
                 outputPacket->dts = outputPacket->pts = ts;
 
                 outFmtCtxLock.lock();
+
                 if ((av_write_frame(outFormatContext, outputPacket)) != 0)
                     throw std::runtime_error("Couldn't write frame.");
                 outFmtCtxLock.unlock();
                 cout << RED << "Written frame " << frameCount++ << " (size = " << outputPacket->size << ")" << RESET
                      << endl;
+
                 av_packet_unref(outputPacket);
             }
             //if (cSamples)
                 //av_freep(&cSamples[0]);
             //av_freep(&cSamples);
         }
+        av_packet_unref(inputPacket);
     }
+
     av_packet_free(&inputPacket);
     av_packet_free(&outputPacket);
     av_frame_free(&inputFrame);
 }
 
 void ScreenRecorder::findAudioStream() {
-    for (int i = 0; i < audioInFormatContext->nb_streams; i++) {
+    for (int i = 0; i < (static_cast<int>(audioInFormatContext->nb_streams)); i++) {
         if (audioInFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             audioInStream = audioInFormatContext->streams[i];
             break;
@@ -205,23 +216,17 @@ int ScreenRecorder::select_sample_rate(const AVCodec *codec) {
  }
 
 AVInputFormat *ScreenRecorder::cp_find_input_format() {
-#ifdef WINDOWS
+#ifdef Q_OS_WIN32
     if (deviceName == "") {
-        deviceName = DS_GetDefaultDevice("a");
+        deviceName = "Microphone (High Definition Audio Device)";
         if (deviceName == "") {
             throw std::runtime_error("Fail to get default audio device, maybe no microphone.");
         }
     }
     deviceName = "audio=" + deviceName;
     return av_find_input_format("dshow");
-#elif MACOS
-    if(deviceName == "") deviceName = ":0";
-    return av_find_input_format("avfoundation");
-    //"[[VIDEO]:[AUDIO]]"
-#elif UNIX
-    if(deviceName.empty()) deviceName = "default";
-    return av_find_input_format("alsa");
-#elif __linux__
+
+#elif Q_OS_LINUX
     if(deviceName.empty()) deviceName = "default";
     return av_find_input_format("alsa");
 #endif

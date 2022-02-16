@@ -18,6 +18,8 @@ private:
     const char*         resolution;
     const char*         oX;
     const char*         oY;
+    const char*         endX;
+    const char*         endY;
     recStatus_t         status;
 
     string              deviceName;
@@ -74,7 +76,7 @@ private:
 public:
     explicit ScreenRecorder();
     ~ScreenRecorder();
-    int start(const string& filename, bool audioRec, int oX, int oY, const string& resolution);
+    int start(const string& filename, bool audioRec, int oX, int oY,int endX, int endY, const string& resolution);
     int stop();
     int pause();
     int resume();
