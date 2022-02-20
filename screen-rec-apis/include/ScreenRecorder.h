@@ -9,6 +9,8 @@
 #include "ffmpeglib.h"
 #include "outputColors.h"
 #include "recordStatus.h"
+#include "windows.h"
+
 using namespace std;
 const AVSampleFormat requireAudioFmt = AV_SAMPLE_FMT_FLTP;
 class ScreenRecorder {
@@ -69,6 +71,8 @@ private:
     int select_sample_rate(const AVCodec *codec);
     void initAudioStream();
     void initVideoStream();
+    AVFrame* crop_frame(const AVFrame *in, int left, int top, int right, int bottom);
+    void setkey(int val,LPCWSTR key);
     int64_t incrementTs();
     AVInputFormat* cp_find_input_format();
 

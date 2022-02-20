@@ -1,5 +1,8 @@
 #include "getRecArea.h"
-#include "ui_dialog.h"
+#include <QDialog>
+#include <QRubberBand>
+#include <QMouseEvent>
+#include <ui_getRecArea.h>
 
 GetRecArea::GetRecArea(QWidget *parent) :
     QDialog(parent),

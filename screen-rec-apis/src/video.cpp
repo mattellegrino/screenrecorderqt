@@ -4,19 +4,12 @@
 #include "qglobal.h"
 #include "windows.h"
 
-std::wstring s2ws(const std::string& str)
-{
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
-    std::wstring wstrTo( size_needed, 0 );
-    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
-    return wstrTo;
-}
-
 
 void ScreenRecorder::openVideo() {
     videoOptions = nullptr;
     videoInFormatContext = nullptr;
     videoInFormatContext = avformat_alloc_context();
+
 
     if ((av_dict_set(&videoOptions, "framerate", "30", 0 )) < 0)
         throw std::runtime_error("Error in setting framerate value.");
@@ -26,9 +19,6 @@ void ScreenRecorder::openVideo() {
 
     if ((av_dict_set(&videoOptions, "vsync", "vfr", 0 )) < 0)
         throw std::runtime_error("Error in setting preset value.");
-
-    if ((av_dict_set(&videoOptions, "filter", "crop=80:60:200:100", 0 )) < 0)
-        throw std::runtime_error("Error in setting crop value.");
 
 
     #ifdef Q_OS_LINUX
@@ -43,49 +33,19 @@ void ScreenRecorder::openVideo() {
         throw std::runtime_error("Error while opening input device.");
     #endif
 
-
-    /*static DWORD newvalue = 300;
-    std::string startx= {"300"};
-    std::string valuename = {"start_x"};
-    const std::wstring& valueName=s2ws(valuename);
-    const std::wstring& data=s2ws(startx);
-    HKEY hk;
-    DWORD dw;
-    DWORD dwType = REG_DWORD;
-    char buf[255] = {0};
-    DWORD dwBufSize = sizeof(newvalue);
-    long n = RegOpenKeyEx(HKEY_CURRENT_USER,TEXT("Software\\screen-capture-recorder"),0,KEY_READ,&hk);
-    if(n==ERROR_SUCCESS)
-    {
-
-    cout << "riuscito" << n << endl;
-    }
-    n = RegQueryValueEx (hk,TEXT("start_y"),NULL,NULL,(LPBYTE)&newvalue, &dwBufSize);
-    if(n==ERROR_SUCCESS)
-    {
-
-    cout << "riuscito2" << n << endl;
-    }
-    n= RegSetValueEx(hk,NULL,0,REG_DWORD,(BYTE*)&newvalue,dwBufSize);
-    if(n==ERROR_SUCCESS)
-    {
-
-    cout << "riuscito3" << endl;
-    }else
-    {
-
-    cout << n << endl;
-    }
-
-    RegCloseKey(hk);*/
+    int startx = atoi(this->oX);
+    int starty = atoi(this->oY);
+    int endx = atoi(this->endX);
+    int endy = atoi(this->endY);
+    endx = endx-startx;
+    endy = endy-starty;
 
 
-av_dict_set(&videoOptions, "video_size", this->resolution, 0);
-av_dict_set(&videoOptions, "grab_x", this->oX, 0);
-av_dict_set(&videoOptions, "grab_y", this->oY, 0);
-av_dict_set(&videoOptions, "start_x", "20", 0);
-av_dict_set(&videoOptions, "start_y", "30", 0);
 
+    setkey(startx,TEXT("start_x"));
+    setkey(starty,TEXT("start_y"));
+    setkey(endx,TEXT("capture_width"));
+    setkey(endy,TEXT("capture_height"));
 
 
     findVideoStream();
@@ -174,13 +134,20 @@ void ScreenRecorder::decodeEncodeVideo() {
             if ((avcodec_receive_frame(videoInCodecContext, inputFrame)) < 0)
                 throw std::runtime_error("Can not receive frame in decoding.");
 
+
+
             sws_scale(videoConverter, inputFrame->data, inputFrame->linesize, 0, videoInCodecContext->height,
                       outputFrame->data, outputFrame->linesize);
+
+
+
             outputPacket->data = nullptr;
             outputPacket->size = 0;
 
+
             if ((avcodec_send_frame(videoOutCodecContext, outputFrame)) < 0)
                 throw std::runtime_error("Fail to send frame in encoding.");
+
 
             int value = avcodec_receive_packet(videoOutCodecContext, outputPacket);
             if (value == AVERROR(EAGAIN))
@@ -190,12 +157,15 @@ void ScreenRecorder::decodeEncodeVideo() {
             outputPacket->pts = ts;
             outputPacket->dts = ts;
 
+
+
             outFmtCtxLock.lock();
             if (av_write_frame(outFormatContext, outputPacket) != 0)
                 throw std::runtime_error("Error writing frame");
             outFmtCtxLock.unlock();
             cout << BLUE << "Written frame " << frameCount++ << " (size = " << outputPacket->size << ")" << RESET
                  << endl;
+
 
             av_packet_unref(outputPacket);
         }
@@ -207,6 +177,7 @@ void ScreenRecorder::decodeEncodeVideo() {
     av_packet_free(&inputPacket);
     av_packet_free(&outputPacket);
 }
+
 
 void ScreenRecorder::findVideoStream() {
     videoStreamIndex = -1;
@@ -262,3 +233,23 @@ void ScreenRecorder::initVideoStream() {
 int64_t ScreenRecorder::incrementTs() {
     return av_rescale_q(1, videoOutCodecContext->time_base, videoOutStream->time_base);
 }
+
+
+
+void ScreenRecorder::setkey (int val, LPCWSTR key) {
+
+    HKEY hKey;
+    char hexString[20];
+    _itoa_s(val, hexString, 16);
+    DWORD value = strtoul(hexString, NULL, 16);
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\screen-capture-recorder\\"), 0, KEY_ALL_ACCESS, &hKey) != ERROR_SUCCESS)
+         RegCreateKeyEx(HKEY_LOCAL_MACHINE,TEXT("SOFTWARE\\screen-capture-recorder\\"),0, NULL, 0,KEY_WRITE, NULL,&hKey, &value);
+
+    RegSetValueEx(hKey,key, 0, REG_DWORD, (const BYTE*)&value, sizeof(value));
+    RegCloseKey(hKey);
+
+}
+
+
+
+

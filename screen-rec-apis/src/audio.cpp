@@ -218,7 +218,7 @@ int ScreenRecorder::select_sample_rate(const AVCodec *codec) {
 AVInputFormat *ScreenRecorder::cp_find_input_format() {
 #ifdef Q_OS_WIN32
     if (deviceName == "") {
-        deviceName = "Microphone (High Definition Audio Device)";
+        deviceName = "Microfono (4- Realtek High Definition Audio)";
         if (deviceName == "") {
             throw std::runtime_error("Fail to get default audio device, maybe no microphone.");
         }

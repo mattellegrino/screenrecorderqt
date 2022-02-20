@@ -79,13 +79,13 @@ void MainWindow::on_pushButton_2_clicked() {
     } else std::cout << "full screen " << "(" << width << "x" << height << ")" << std::endl;
     std::cout << "output file: " << filename << std::endl;
     if (custom) {
-        if (recorder->start(filename, micRec, origin.x(), origin.y(), cresolution) < 0) {
+        if (recorder->start(filename, micRec, origin.x(), origin.y(),end.x(),end.y(), cresolution) < 0) {
             ui->label_4->setText(QString::fromStdString(recorder->getError()));
             ui->label_4->setVisible(true);
             return;
         }
     } else {
-        if (recorder->start(filename, micRec, 0, 0, resolution) < 0) {
+        if (recorder->start(filename, micRec, 0, 0, 1920, 1080,resolution) < 0) {
             ui->label_4->setText(QString::fromStdString(recorder->getError()));
             ui->label_4->setVisible(true);
             return;
