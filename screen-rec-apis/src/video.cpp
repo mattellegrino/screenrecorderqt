@@ -11,14 +11,17 @@ void ScreenRecorder::openVideo() {
     videoInFormatContext = avformat_alloc_context();
 
 
-    if ((av_dict_set(&videoOptions, "framerate", "30", 0 )) < 0)
+    if ((av_dict_set(&videoOptions, "framerate", "20", 0 )) < 0)
         throw std::runtime_error("Error in setting framerate value.");
 
-    if ((av_dict_set(&videoOptions, "preset", "medium", 0 )) < 0)
+    if ((av_dict_set(&videoOptions, "preset", "slower", 0 )) < 0)
         throw std::runtime_error("Error in setting preset value.");
 
     if ((av_dict_set(&videoOptions, "vsync", "vfr", 0 )) < 0)
         throw std::runtime_error("Error in setting preset value.");
+
+    if ((av_dict_set(&videoOptions, "rtbufsize", "2000M", 0 )) < 0)
+        throw std::runtime_error("Error in setting buffer value.");
 
 
     #ifdef Q_OS_LINUX
@@ -207,7 +210,7 @@ void ScreenRecorder::setVideoOutCC(AVCodec *codec) {
     videoOutCodecContext->gop_size = 0;
     videoOutCodecContext->max_b_frames = 0;
     videoOutCodecContext->time_base.num = 1;
-    videoOutCodecContext->time_base.den = 30;
+    videoOutCodecContext->time_base.den = 15;
     if (videoCodecId == AV_CODEC_ID_H264)
         av_opt_set(videoOutCodecContext->priv_data, "preset", "slow", 0);
     outFmtCtxLock.lock();
